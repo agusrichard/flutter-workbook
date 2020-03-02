@@ -7,6 +7,7 @@ const { checkAuthToken } = require('./src/middleware/AuthMiddleware')
 // Import routes
 const { User } = require('./src/routes/user')
 const { Auth } = require('./src/routes/auth')
+const { Migration } = require('./src/routes/migrations')
 
 // Initialize app
 const app = express()
@@ -17,6 +18,7 @@ app.use(bodyParser.json())
 // Routes middleware
 app.use('/user', checkAuthToken, User)
 app.use('/auth', Auth)
+app.use('/migrations', Migration)
 
 app.get('/', (req, res) => {
   res.send('Hello World')
