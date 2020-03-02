@@ -11,6 +11,8 @@ const data = {
   count: 1
 }
 
+const user = require('../models/user')
+
 
 const DeleteUser = (req, res) => {
   const { id } = req.body
@@ -45,7 +47,13 @@ const GetUsers = (req, res) => {
 }
 
 const CreateUser = (req, res) => {
-  res.send(req.body)
+  const { name, username, password } = req.body
+  try {
+    user.create(name, username, password)
+    res.send(`User with username ${req.body.username} is created`)
+  } catch(err) {
+    res.send('There is an error when creating the user ' + err)
+  }
 }
 
 const UpdateUser = (req, res) => {
