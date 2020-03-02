@@ -30,13 +30,24 @@ const create = (name, username, password) => {
   })
 }
 
-const getAll = () => {
+const getAll = (params) => {
+  const { perPage, currentPage, search, sort } = params
+  const conditions = `
+  ${search && `WHERE ${search.map(v => `${v.keys} LIKE '%${v.value}%'`).join(' AND ')}`}
+  ORDER BY ${sort.keys} ${sort.value === 0 ? 'ASC' : 'DESC'}
+  LIMIT ${perPage}
+  OFFSET ${(currentPage - 1) * perPage}
+  `
+
+  console.log(conditions)
+
   return new Promise((resolve, reject) => {
     db.query(
       `SELECT *
-       FROM users;`,
+       FROM users
+       ${conditions};`,
        (error, results, fields) => {
-         if (error) throw error
+         if (error) throw reject(error)
          resolve(results)
        }
     )

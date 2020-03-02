@@ -1,16 +1,48 @@
 const userModel = require('../models/user')
+require('dotenv').config()
 
+const GetAllUsers = async (req, res) => {
+  const params = {
+    currentPage: req.query.page || 1,
+    perPage: req.query.limit || 5,
+    search: req.query.search || '',
+    sort: req.query.sort || { keys: 'id', value: 0 }
+  }
 
-const DeleteUser = async (req, res) => {
+  const key = Object.keys(params.search)
+  if (req.query.search) {
+    params.search = key.map((v, i) => {
+      return { keys: key[i], value: req.query.search[key[i]] }
+    })
+  }
+
+  const sortKey = Object.keys(params.sort)
+  if (req.query.sort) {
+    params.sort = sortKey.map((v, i) => {
+      return { keys: sortKey[i], value: req.query.sort[sortKey[i]] }
+    })[0]
+  } 
+
   try {
-    const canDelete = await userModel.deleteById(req.params.id)
-    if (canDelete) {
-      res.send('User is deleted')
-    } else {
-      res.send('User not found')
+    const users = await userModel.getAll(params)
+    const pagination = {
+      ...params,
+      nextPage: process.env.APP_URL,
+      previousPage: process.env.APP_URL,
+      totalPages: Math.ceil(users.length / parseInt(params.perPage)),
+      totalEntries: users.length
     }
+
+    res.send({
+      success: true,
+      data: users,
+      pagination
+    })
   } catch(err) {
-    res.send('There is an error occured ' + err)
+    res.send({
+      success: false,
+      msg: 'There is an error occured ' + err
+    })
   }
 }
 
@@ -18,36 +50,68 @@ const GetSingleUser = async (req, res) => {
   try {
     const user = await userModel.getById(req.params.id)
     if (user) {
-      res.send(user)
+      res.send({
+        success: true,
+        data: user
+      })
     } else {
-      res.send('User not found')
+      res.send({
+        success: false,
+        msg: 'User is not found'
+      })
     }
   } catch(err) {
-    res.send('There is an error occured ' + err)
+    res.send({
+      success: false,
+      msg: 'There is an error occured ' + err
+    })
   }
-  
 }
 
-const GetAllUsers = async (req, res) => {
+
+const DeleteUser = async (req, res) => {
   try {
-    const users = await userModel.getAll()
-    res.send(users)
+    const canDelete = await userModel.deleteById(req.params.id)
+    if (canDelete) {
+      res.send({
+        success: true,
+        msg: 'User is deleted'
+      })
+    } else {
+      res.send({
+        success: true,
+        msg: 'User is not found'
+      })
+    }
   } catch(err) {
-    res.send('There is an error occured' + err)
+    res.send({
+      success: true,
+      msg: 'There is an error occured ' + err
+    })
   }
 }
+
 
 const CreateUser = async (req, res) => {
   const { name, username, password } = req.body
   try {
     const canCreate = await userModel.create(name, username, password)
     if (canCreate) {
-      res.send(`User with username ${req.body.username} is created`)
+      res.send({
+        status: true,
+        msg: `User with username ${req.body.username} is created`
+      })
     } else {
-      res.send('Username is taken')
+      res.send({
+        status: false,
+        msg: 'Username is taken'
+      })
     }
   } catch(err) {
-    res.send('There is an error when creating the user ' + err)
+    res.send({
+      status: false,
+      msg: 'There is an error when creating the user ' + err
+    })
   }
 }
 
@@ -65,9 +129,15 @@ const UpdateUser = async (req, res) => {
       }
   
       await userModel.updateUser(id, data)
-      res.send('Update user is success')
+      res.send({
+        success: true,
+        msg: `Update user with id ${id} is success`
+      })
     } else {
-      res.send('User not found')
+      res.send({
+        success: false,
+        msg: 'User not found'
+      })
     }
     
   } catch(err) {
