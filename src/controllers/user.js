@@ -1,82 +1,84 @@
-// Mock up data
-const data = {
-  success: true,
-  data: [
-    {
-      id: 1,
-      name: 'Ujang',
-      email: 'ujang@gmail.com'
+const userModel = require('../models/user')
+
+
+const DeleteUser = async (req, res) => {
+  try {
+    const canDelete = await userModel.deleteById(req.params.id)
+    if (canDelete) {
+      res.send('User is deleted')
+    } else {
+      res.send('User not found')
     }
-  ],
-  count: 1
-}
-
-const user = require('../models/user')
-
-
-const DeleteUser = (req, res) => {
-  const { id } = req.body
-
-  if (id) {
-    if (id === '5') {
-      res.send({
-        success: true,
-        msg: 'User 5 has been deleted'
-      })
-    }
+  } catch(err) {
+    res.send('There is an error occured ' + err)
   }
-  res.send({
-    success: false,
-    msg: 'User not found'
-  })
 }
 
-const GetSingleUser = (req, res) => {
-  const list = ['Ujang', 'Hadi', 'Kurnia']
-
-  res.send({
-    success: true,
-    data: {
-      name: list[parseInt(req.params.id) - 1]
+const GetSingleUser = async (req, res) => {
+  try {
+    const user = await userModel.getById(req.params.id)
+    if (user) {
+      res.send(user)
+    } else {
+      res.send('User not found')
     }
-  })
+  } catch(err) {
+    res.send('There is an error occured ' + err)
+  }
+  
 }
 
-const GetUsers = (req, res) => {
-  res.send(data)
+const GetAllUsers = async (req, res) => {
+  try {
+    const users = await userModel.getAll()
+    res.send(users)
+  } catch(err) {
+    res.send('There is an error occured' + err)
+  }
 }
 
-const CreateUser = (req, res) => {
+const CreateUser = async (req, res) => {
   const { name, username, password } = req.body
   try {
-    user.create(name, username, password)
-    res.send(`User with username ${req.body.username} is created`)
+    const canCreate = await userModel.create(name, username, password)
+    if (canCreate) {
+      res.send(`User with username ${req.body.username} is created`)
+    } else {
+      res.send('Username is taken')
+    }
   } catch(err) {
     res.send('There is an error when creating the user ' + err)
   }
 }
 
-const UpdateUser = (req, res) => {
-  const { id } = req.body
+const UpdateUser = async (req, res) => {
+  const { id } = req.params
 
-  if (id) {
-    if (id === '5') {
-      res.send({
-        success: true,
-        msg: 'User 5 has been updated'
-      })
+  try {
+    const user = await userModel.getById(id)
+
+    if (user) {
+      const data = {
+        name: req.body.name || user.name,
+        username: req.body.username || user.username,
+        password: req.body.password || user.password
+      }
+  
+      await userModel.updateUser(id, data)
+      res.send('Update user is success')
+    } else {
+      res.send('User not found')
     }
+    
+  } catch(err) {
+    res.send('There is an error occured ' + err)
   }
-  res.send({
-    success: false,
-    msg: 'User not found'
-  })
 }
 
 module.exports = { 
   DeleteUser, 
   GetSingleUser, 
-  GetUsers, 
+  GetAllUsers, 
   CreateUser, 
   UpdateUser 
 }

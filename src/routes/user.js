@@ -1,17 +1,17 @@
 const User = require('express').Router()
 
 // Controllers
-const { DeleteUser, GetSingleUser, GetUsers, CreateUser, UpdateUser } = require('../controllers/user')
+const { DeleteUser, GetSingleUser, GetAllUsers, CreateUser, UpdateUser } = require('../controllers/user')
 
 
-User.get('/', GetUsers)
+User.get('/', GetAllUsers)
 
 User.get('/:id', GetSingleUser)
 
 User.post('/', CreateUser)
 
-User.patch('/', UpdateUser)
+User.patch('/:id', UpdateUser)
 
-User.delete('/', DeleteUser)
+User.delete('/:id', DeleteUser)
 
 module.exports = { User }

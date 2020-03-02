@@ -8,7 +8,7 @@ const Login = (req, res) => {
   if (username && password) {
     if ((username === 'admin') && (password === 'admin')) {
       const data = { email: 'admin@server.com' }
-      const token = jwt.sign(data, process.env.APP_KEY, {expiresIn: '15m'})
+      const token = jwt.sign(data, process.env.APP_KEY, {expiresIn: '60m'})
       res.send({
         sucess: true,
         msg: 'Login Success',
