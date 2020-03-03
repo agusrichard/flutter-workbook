@@ -4,7 +4,6 @@ const qs = require('qs')
 require('dotenv').config()
 
 const GetAllUsers = async (req, res) => {
-  console.log(req.query)
   // Parameters to specify how to fetch all users
   const params = {
     currentPage: parseInt(req.query.page) || 1,
