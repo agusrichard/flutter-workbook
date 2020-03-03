@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs')
 const userModel = require('../models/user')
 require('dotenv').config()
 
@@ -94,8 +95,11 @@ const DeleteUser = async (req, res) => {
 
 const CreateUser = async (req, res) => {
   const { name, username, password } = req.body
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
+
   try {
-    const canCreate = await userModel.create(name, username, password)
+    const canCreate = await userModel.create(name, username, hashedPassword)
     if (canCreate) {
       res.send({
         status: true,
@@ -117,15 +121,19 @@ const CreateUser = async (req, res) => {
 
 const UpdateUser = async (req, res) => {
   const { id } = req.params
+  const { password } = req.body
+  const salt = bcrypt.genSaltSync(10);
+  const hashedPassword = bcrypt.hashSync(password, salt);
+
 
   try {
     const user = await userModel.getById(id)
-
+    
     if (user) {
       const data = {
         name: req.body.name || user.name,
         username: req.body.username || user.username,
-        password: req.body.password || user.password
+        password: hashedPassword || user.password
       }
   
       await userModel.updateUser(id, data)
