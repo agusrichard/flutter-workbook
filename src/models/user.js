@@ -1,6 +1,7 @@
 const db = require('../config/db')
 const bcrypt = require('bcryptjs')
 
+// Create new user
 const create = (name, username, password, created_at) => {
   return new Promise((resolve, reject) => { db.query(
     `SELECT COUNT(*) AS total
@@ -26,15 +27,18 @@ const create = (name, username, password, created_at) => {
           })
         }
       } else {
-        throw new Error(error)
+        reject(error)
       }
     }
   )
   })
 }
 
+// Fetch all users
 const getAll = (params) => {
   const { perPage, currentPage, search, sort } = params
+
+  // Query conditions
   const conditions = `
   ${search && `WHERE ${search.map(v => `${v.keys} LIKE '%${v.value}%'`).join(' AND ')}`}
   ORDER BY ${sort.keys} ${parseInt(sort.value) === 0 ? 'ASC' : 'DESC'}
@@ -42,21 +46,27 @@ const getAll = (params) => {
   OFFSET ${(currentPage - 1) * perPage}
   `
 
-  console.log(conditions)
-
   return new Promise((resolve, reject) => {
     db.query(
-      `SELECT *
-       FROM users
-       ${conditions};`,
-       (error, results, fields) => {
-         if (error) throw reject(error)
-         resolve(results)
-       }
+      `SELECT COUNT(*) AS total
+      from users`,
+      (error, results, fields) => {
+        const total = results[0].total
+        db.query(
+          `SELECT *
+           FROM users
+           ${conditions};`,
+           (error, results, fields) => {
+             if (error) reject(error)
+             resolve({ results, total })
+           }
+        )
+      }
     )
   })
 }
 
+// Fetch one user by id
 const getById = (id) => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -64,7 +74,7 @@ const getById = (id) => {
       FROM users
       WHERE id=${parseInt(id)};`,
       (error, results, fields) => {
-        if (error) throw error
+        if (error) reject(error)
         if (results.length !== 0) {
           resolve(results[0])
         } else {
@@ -75,6 +85,7 @@ const getById = (id) => {
   })
 }
 
+// Delete user by id
 const deleteById = (id) => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -82,13 +93,13 @@ const deleteById = (id) => {
       FROM users
       WHERE id=${parseInt(id)};`,
       (error, results, fields) => {
-        if (error) throw error
+        if (error) reject(error)
         if (results.length !== 0) {
           db.query(
             `DELETE FROM users
              WHERE id=${parseInt(id)};`,
              (error, results, fields) => {
-               if (error) throw error
+               if (error) reject(error)
                resolve(true)
              }
           )
@@ -100,6 +111,7 @@ const deleteById = (id) => {
   })
 }
 
+// Update user by id
 const updateUser = (id, data) => {
   return new Promise((resolve, reject) => {
     db.query(
@@ -107,7 +119,7 @@ const updateUser = (id, data) => {
       FROM users
       WHERE id=${parseInt(id)};`,
       (error, results, fields) => {
-        if (error) throw error
+        if (error) reject(error)
         if (results.length !== 0) {
           db.query(
             `UPDATE users
@@ -125,5 +137,6 @@ const updateUser = (id, data) => {
     )
   })
 }
+
 
 module.exports = { create, getAll, getById, deleteById, updateUser }

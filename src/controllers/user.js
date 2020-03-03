@@ -1,15 +1,19 @@
 const bcrypt = require('bcryptjs')
 const userModel = require('../models/user')
+const qs = require('qs')
 require('dotenv').config()
 
 const GetAllUsers = async (req, res) => {
+  console.log(req.query)
+  // Parameters to specify how to fetch all users
   const params = {
-    currentPage: req.query.page || 1,
-    perPage: req.query.limit || 5,
+    currentPage: parseInt(req.query.page) || 1,
+    perPage: parseInt(req.query.limit) || 5,
     search: req.query.search || '',
     sort: req.query.sort || { keys: 'id', value: 0 }
   }
 
+  // Create search parameters
   const key = Object.keys(params.search)
   if (req.query.search) {
     params.search = key.map((v, i) => {
@@ -17,6 +21,7 @@ const GetAllUsers = async (req, res) => {
     })
   }
 
+  // Create sort parameters
   const sortKey = Object.keys(params.sort)
   if (req.query.sort) {
     params.sort = sortKey.map((v, i) => {
@@ -25,18 +30,42 @@ const GetAllUsers = async (req, res) => {
   } 
 
   try {
-    const users = await userModel.getAll(params)
+    const { results, total } = await userModel.getAll(params)
+    const totalPages = Math.ceil(total / parseInt(params.perPage))
+
+    // Initialize next page and previous page
+    let nextPage = ''
+    let previousPage = ''
+
+    // Logic test for next page
+    if (params.currentPage < totalPages) {
+      const query = req.query
+      query.page = params.currentPage + 1;
+      nextPage = process.env.APP_URL.concat(`user?${qs.stringify(query)}`)
+    } else {
+      nextPage = null
+    }
+
+    // Logic test for previous page
+    if (params.currentPage > 1) {
+      const query = req.query
+      query.page = params.currentPage - 1;
+      previousPage = process.env.APP_URL.concat(`user?${qs.stringify(query)}`)
+    } else {
+      previousPage = null
+    }
+
     const pagination = {
       ...params,
-      nextPage: process.env.APP_URL,
-      previousPage: process.env.APP_URL,
-      totalPages: Math.ceil(users.length / parseInt(params.perPage)),
-      totalEntries: users.length
+      nextPage,
+      previousPage,
+      totalPages,
+      totalEntries: total
     }
 
     res.send({
       success: true,
-      data: users,
+      data: results,
       pagination
     })
   } catch(err) {
@@ -46,6 +75,7 @@ const GetAllUsers = async (req, res) => {
     })
   }
 }
+
 
 const GetSingleUser = async (req, res) => {
   try {
@@ -95,11 +125,10 @@ const DeleteUser = async (req, res) => {
 
 const CreateUser = async (req, res) => {
   const { name, username, password } = req.body
-  const salt = bcrypt.genSaltSync(10);
-  const hashedPassword = bcrypt.hashSync(password, salt);
-  const date = new Date()
+  const hashedPassword = bcrypt.hashSync(password);
 
   try {
+    const date = new Date()
     const canCreate = await userModel.create(name, username, hashedPassword, date)
     if (canCreate) {
       res.send({
@@ -122,28 +151,49 @@ const CreateUser = async (req, res) => {
 
 const UpdateUser = async (req, res) => {
   const { id } = req.params
-  const { password } = req.body
-  const salt = bcrypt.genSaltSync(10);
-  const hashedPassword = bcrypt.hashSync(password, salt);
-  const date = new Date()
-
+  const { name, username, old_password, new_password, confirm_password } = req.body 
 
   try {
     const user = await userModel.getById(id)
+    const oldPassword = user.password
     
     if (user) {
-      const data = {
-        name: req.body.name || user.name,
-        username: req.body.username || user.username,
-        password: hashedPassword || user.password,
-        updated_at: date || user.updated_at
+      if ( old_password && new_password && confirm_password ) {
+        if (new_password === confirm_password) {
+          if (bcrypt.compareSync(old_password, oldPassword)) {
+            const hashedPassword = bcrypt.hashSync(new_password);
+            
+            const date = new Date()
+            const data = {
+              name: name || user.name,
+              username: username || user.username,
+              password: hashedPassword || oldPassword,
+              updated_at: date || user.updated_at
+            }
+        
+            await userModel.updateUser(id, data)
+            res.send({
+              success: true,
+              msg: `Update user with id ${id} is success`
+            })
+          } else {
+            res.send({
+              success: false,
+              msg: 'Wrong password'
+            })
+          }
+        } else {
+          res.send({
+            success: false,
+            msg: "New password and Confirm password do not match"
+          })
+        }
+      } else {
+        res.send({
+          success: false,
+          msg: 'Please provide current password, new password and confirm password'
+        })
       }
-  
-      await userModel.updateUser(id, data)
-      res.send({
-        success: true,
-        msg: `Update user with id ${id} is success`
-      })
     } else {
       res.send({
         success: false,
@@ -156,7 +206,7 @@ const UpdateUser = async (req, res) => {
   }
 }
 
-module.exports = { 
+module.exports = {
   DeleteUser, 
   GetSingleUser, 
   GetAllUsers, 
