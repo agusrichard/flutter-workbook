@@ -97,9 +97,10 @@ const CreateUser = async (req, res) => {
   const { name, username, password } = req.body
   const salt = bcrypt.genSaltSync(10);
   const hashedPassword = bcrypt.hashSync(password, salt);
+  const date = new Date()
 
   try {
-    const canCreate = await userModel.create(name, username, hashedPassword)
+    const canCreate = await userModel.create(name, username, hashedPassword, date)
     if (canCreate) {
       res.send({
         status: true,
@@ -124,6 +125,7 @@ const UpdateUser = async (req, res) => {
   const { password } = req.body
   const salt = bcrypt.genSaltSync(10);
   const hashedPassword = bcrypt.hashSync(password, salt);
+  const date = new Date()
 
 
   try {
@@ -133,7 +135,8 @@ const UpdateUser = async (req, res) => {
       const data = {
         name: req.body.name || user.name,
         username: req.body.username || user.username,
-        password: hashedPassword || user.password
+        password: hashedPassword || user.password,
+        updated_at: date || user.updated_at
       }
   
       await userModel.updateUser(id, data)

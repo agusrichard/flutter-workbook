@@ -1,7 +1,7 @@
 const db = require('../config/db')
 const bcrypt = require('bcryptjs')
 
-const create = (name, username, password) => {
+const create = (name, username, password, created_at) => {
   return new Promise((resolve, reject) => { db.query(
     `SELECT COUNT(*) AS total
      FROM users 
@@ -13,10 +13,13 @@ const create = (name, username, password) => {
         if (total !== 0) {
           resolve(false)
         } else {
-          db.query(`INSERT INTO users(name, username, password) VALUES('${name}', '${username}', '${password}');`,
+          db.query(`
+          INSERT INTO users(name, username, password, created_at, updated_at) 
+          VALUES('${name}', '${username}', '${password}', ${db.escape(created_at)}, ${db.escape(created_at)});
+          `,
           (error, results, fields) => {
             if (error) {
-              resolve(false)
+              reject(error)
             } else {
               resolve(true)
             }
@@ -34,7 +37,7 @@ const getAll = (params) => {
   const { perPage, currentPage, search, sort } = params
   const conditions = `
   ${search && `WHERE ${search.map(v => `${v.keys} LIKE '%${v.value}%'`).join(' AND ')}`}
-  ORDER BY ${sort.keys} ${sort.value === 0 ? 'ASC' : 'DESC'}
+  ORDER BY ${sort.keys} ${parseInt(sort.value) === 0 ? 'ASC' : 'DESC'}
   LIMIT ${perPage}
   OFFSET ${(currentPage - 1) * perPage}
   `
@@ -108,7 +111,7 @@ const updateUser = (id, data) => {
         if (results.length !== 0) {
           db.query(
             `UPDATE users
-             SET name='${data.name}', username='${data.username}', password='${data.password}'
+             SET name='${data.name}', username='${data.username}', password='${data.password}', updated_at=${db.escape(data.updated_at)}
              WHERE id=${parseInt(id)};`,
              (error, results, fields) => {
                if (error) throw error
